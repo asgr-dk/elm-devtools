@@ -1,3 +1,3 @@
 # Elm Developer Tools
 
-Tools for developing Elm applications!
+Tools for developing Elm programs!

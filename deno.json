@@ -1,0 +1,5 @@
+{
+  "tasks": {
+    "build": "deno compile --allow-all --output build/elm-devtools source/Main.ts"
+  }
+}
