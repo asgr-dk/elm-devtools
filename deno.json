@@ -1,5 +1,6 @@
 {
   "tasks": {
-    "build": "deno compile --allow-all --output build/elm-devtools source/Main.ts"
+    "build:windows": "deno compile --allow-all --output build/elm-devtools source/Main.ts 1.0.0",
+    "example:watch": "(cd example && deno run -A ../source/Main.ts 0.1.0 watch)"
   }
 }
