@@ -10,7 +10,7 @@ export function toHelpMsgWatch() {
 Available flags are:
 
     --module=<string>
-        Defaults to "Main". Use this to name
+        Defaults to "Main". Use this to select
         the Elm module you want to build.
 
     --serve=<bool>
@@ -68,17 +68,20 @@ function serveAppBuild(
     import.meta.url.replace("/Command/Watch.ts", "/Client.js"),
   );
   const server = Deno.serve({ port }, async (request: Request) => {
-    if (request.headers.get("upgrade") !== "websocket") {
+    if (request.method === "GET" && request.url.endsWith("/onRebuild")) {
       return new Response((await Deno.open(clientScriptPath)).readable, {
         headers: { ["content-type"]: "application/javascript" },
       });
     }
-    const { response, socket } = Deno.upgradeWebSocket(request);
-    const id = crypto.randomUUID();
-    socket.onopen = () => clients.set(id, socket);
-    socket.onclose = () => clients.delete(id);
-    socket.onerror = () => socket.close();
-    return response;
+    if (request.headers.get("upgrade") === "websocket") {
+      const { response, socket } = Deno.upgradeWebSocket(request);
+      const id = crypto.randomUUID();
+      socket.onopen = () => clients.set(id, socket);
+      socket.onclose = () => clients.delete(id);
+      socket.onerror = () => socket.close();
+      return response;
+    }
+    return new Response(null, { status: 501 });
   });
   return { server, clients };
 }

@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Example</title>
     <script src="/build/main.development.js"></script>
-    <script src="http://localhost:1337"></script>
+    <script src="http://localhost:1337/onRebuild"></script>
   </head>
   <body>
     <script>
-      connectDevTools(init, 1337);
+      onRebuild(init, 1337);
       init();
       function init() {
         const flags = { msgs: localStorage.getItem("msgs") };
