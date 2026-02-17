@@ -30,22 +30,20 @@ export async function watch(args: Array<string>) {
   if (elmJson.type === "package") {
     return Promise.reject(Error.PKG_UNSUPPORTED);
   }
-  const moduleName = parseFlag(args, "module");
+  const moduleName = parseFlag(args, "module") || "Main";
   const serveBuild = parseFlag(args, "serve") === "true";
-  const servePort = serveBuild ? parseFlag(args, "port") : undefined;
-  const buildPath = toBuildPath(name);
-  await buildAppModule(elmJson, moduleName);
-  const appBuildServer = serveBuild
-    ? serveAppBuild(servePort ? parseInt(servePort) : undefined)
-    : undefined;
+  const servePort = parseInt(parseFlag(args, "port") || "1337");
+  const buildPath = toBuildPath(moduleName);
+  await buildAppModule(elmJson, moduleName, false);
+  const appBuildServer = serveBuild ? serveAppBuild(servePort) : undefined;
   const srcDirWatch = watchFiles(
     elmJson["source-directories"],
     async (_) => {
-      await buildAppModule(elmJson, moduleName);
-      const codeBlob = await Deno.readFile(buildPath);
+      await buildAppModule(elmJson, moduleName, false);
+      const script = await Deno.readTextFile(buildPath);
       if (appBuildServer) {
         appBuildServer.clients.forEach((client) =>
-          client.readyState === client.OPEN && client.send(codeBlob)
+          client.readyState === client.OPEN && client.send(script)
         );
       }
     },
@@ -63,7 +61,7 @@ export async function watch(args: Array<string>) {
 }
 
 function serveAppBuild(
-  port: number | undefined = 1337,
+  port: number,
 ): { server: Deno.HttpServer<Deno.NetAddr>; clients: Map<string, WebSocket> } {
   const clients = new Map<string, WebSocket>();
   const clientScriptPath = fromFileUrl(

@@ -1,13 +1,19 @@
-port module Main exposing (main)
+module Main exposing
+    ( Flags
+    , Model
+    , Msg(..)
+    , init
+    , main
+    , subscriptions
+    , update
+    , view
+    )
 
 import Browser
 import Browser.Navigation
 import Html exposing (button, input, text)
 import Html.Attributes exposing (type_, value)
 import Html.Events exposing (onClick, onInput)
-import Json.Decode
-import Json.Encode
-import MsgReplay
 
 
 type alias Flags =
@@ -26,51 +32,6 @@ type Msg
     | InputPass String
     | LogIn
     | LogOut
-
-
-encodeMsg : Msg -> Json.Encode.Value
-encodeMsg msg =
-    Json.Encode.list Json.Encode.string
-        (case msg of
-            InputName name ->
-                [ "InputName", name ]
-
-            InputPass pass ->
-                [ "InputPass", pass ]
-
-            LogIn ->
-                [ "LogIn" ]
-
-            LogOut ->
-                [ "LogOut" ]
-        )
-
-
-msgDecoder : Json.Decode.Decoder Msg
-msgDecoder =
-    Json.Decode.andThen
-        (\strings ->
-            case strings of
-                [ "InputName", name ] ->
-                    Json.Decode.succeed (InputName name)
-
-                [ "InputPass", pass ] ->
-                    Json.Decode.succeed (InputPass pass)
-
-                [ "LogIn" ] ->
-                    Json.Decode.succeed LogIn
-
-                [ "LogOut" ] ->
-                    Json.Decode.succeed LogOut
-
-                _ ->
-                    Json.Decode.fail
-                        ("unrecognized message ["
-                            ++ String.join ", " strings
-                            ++ "]"
-                        )
-        )
-        (Json.Decode.list Json.Decode.string)
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -118,18 +79,11 @@ subscriptions model =
     Sub.none
 
 
-port saveMsgs : String -> Cmd msg
-
-
-main : MsgReplay.Program Flags Model Msg
+main : Program Flags Model Msg
 main =
-    MsgReplay.document
+    Browser.document
         { init = init
         , update = update
         , view = view
         , subscriptions = subscriptions
-        , encodeMsg = encodeMsg
-        , msgDecoder = msgDecoder
-        , initMsgs = .msgs
-        , saveMsgs = saveMsgs
         }

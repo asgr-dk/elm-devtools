@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Example</title>
+    <script src="/build/main.development.js"></script>
+    <script src="http://localhost:1337"></script>
+  </head>
+  <body>
+    <script>
+      connectDevTools(init, 1337);
+      init();
+      function init() {
+        const flags = { msgs: localStorage.getItem("msgs") };
+        const main = Elm.Main.Development.init({ flags });
+        main.ports.saveMsgs.subscribe((msgs) =>
+          localStorage.setItem("msgs", msgs)
+        );
+      }
+    </script>
+  </body>
+</html>

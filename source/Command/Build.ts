@@ -22,7 +22,7 @@ export async function build(args: Array<string>) {
   if (elmJson.type === "package") {
     return Promise.reject(Error.PKG_UNSUPPORTED);
   }
-  const moduleName = parseFlag(args, "module");
+  const moduleName = parseFlag(args, "module") || "Main";
   const optimize = parseFlag(args, "optimize") === "true";
   await buildAppModule(elmJson, moduleName, optimize);
 }

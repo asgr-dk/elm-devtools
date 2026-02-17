@@ -38,11 +38,12 @@ export async function getElmJson(): Promise<ElmJson> {
   }
 }
 
-export async function getModulePath(elmJson: ElmJson, name = "Main") {
-  if (elmJson.type === "package") return "src/Main.elm";
+export async function getModulePath(elmJson: ElmJson, name: string) {
+  const namePath = name.replace(".", "/");
+  if (elmJson.type === "package") return `src/${namePath}.elm`;
   return await Promise.any(
     elmJson["source-directories"]
-      .map((dir) => `${dir}/${name}.elm`)
+      .map((dir) => `${dir}/${namePath}.elm`)
       .map((path) =>
         Deno.lstat(path).then((_) => path).catch((_) =>
           Promise.reject(Error.NO_SRC_MOD)
@@ -53,8 +54,8 @@ export async function getModulePath(elmJson: ElmJson, name = "Main") {
 
 export async function buildAppModule(
   elmJson: ApplicationElmJson,
-  name = "Main",
-  optimize = false,
+  name: string,
+  optimize: boolean,
 ) {
   const modulePath = await getModulePath(elmJson, name);
   const buildPath = toBuildPath(name);
@@ -74,7 +75,7 @@ export function toBuildPath(name: string) {
 function toElmArgs(
   modulePath: string,
   buildPath: string,
-  optimize = false,
+  optimize: boolean,
 ) {
   const args = ["make", `--output=${buildPath}`, modulePath];
   if (optimize) args.push("--optimize");
