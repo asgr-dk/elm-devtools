@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "build:windows": "deno compile --allow-all --output build/elm-devtools source/Main.ts 1.0.0",
-    "example:watch": "(cd example && deno run -A ../source/Main.ts 0.1.0 watch)"
+    "compile:windows": "deno compile --allow-all --include source/Client.js --output build/elm-devtools source/Main.ts 0.1.0",
+    "example:watch": "(cd example && deno run --watch -A ../source/Main.ts 0.1.0 watch --serve=true --module=Main --optimize=true)"
   }
 }

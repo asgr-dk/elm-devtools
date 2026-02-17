@@ -1,29 +1,55 @@
 import { yellow } from "./ANSI.ts";
+import { Error, toErrorMessage } from "./Error.ts";
+import { build, toHelpMsgBuild } from "./Command/Build.ts";
+import { toHelpMsgWatch, watch } from "./Command/Watch.ts";
 
 if (import.meta.main) {
-  switch (Deno.args.at(1)) {
-    case "watch":
-      await watch();
-      break;
-    case "--version":
-      console.log(Deno.args.at(0));
-      break;
-    case "--help":
-      console.log(toHelpMsg());
-      break;
-    default:
-      console.log(toHelpMsg());
-      Deno.exit(1);
-  }
+  await main(Deno.args).catch((error) => {
+    console.error(toErrorMessage(error));
+    Deno.exit(1);
+  });
 }
 
-function toHelpMsg() {
+function toHelpMsgMain() {
   return `
 ${yellow("elm-devtools")}
 Tools for developing Elm programs!
+
+Available commands are:
+
+    elm-devtools.exe build
+        Builds an Elm module.
+
+    elm-devtools.exe watch
+        Rebuilds an Elm module on change.
+    
+    elm-devtools.exe --version
+        Prints the version number associated
+        with the build of elm-devtools you
+        are currently running.
+
+    elm-devtools.exe --help
+        Prints this help message.
 `;
 }
 
-async function watch() {
-  throw "TODO";
+async function main(args: Array<string>) {
+  const version = args.at(0);
+  switch (args.at(1)) {
+    case "build":
+      return args.includes("--help")
+        ? console.log(toHelpMsgBuild())
+        : await build(args);
+    case "watch":
+      return args.includes("--help")
+        ? console.log(toHelpMsgWatch())
+        : await watch(args);
+    case "--version":
+      return console.log(version);
+    case "--help":
+      return console.log(toHelpMsgMain());
+    default:
+      console.log(toHelpMsgMain());
+      return Promise.reject(Error.INVALID_ARGS);
+  }
 }
