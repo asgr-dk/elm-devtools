@@ -14,6 +14,12 @@ Available flags are:
     --optimize=<bool>
         Defaults to true. Use this to compress
         the built Elm code using ESBuild.
+
+    --esm=<bool>
+        Defaults to false. The Elm compiler emits
+        "immediately invoked function expressions"
+        or "iife". Use this flag to emit ecmascript
+        modules instead.
 `;
 }
 
@@ -24,5 +30,6 @@ export async function build(args: Array<string>) {
   }
   const moduleName = parseFlag(args, "module") || "Main";
   const optimize = parseFlag(args, "optimize") === "true";
-  await buildAppModule(elmJson, moduleName, optimize);
+  const esm = parseFlag(args, "esm") === "true";
+  await buildAppModule(elmJson, moduleName, optimize, esm);
 }

@@ -56,6 +56,7 @@ export async function buildAppModule(
   elmJson: ApplicationElmJson,
   name: string,
   optimize: boolean,
+  esm: boolean,
 ) {
   const modulePath = await getModulePath(elmJson, name);
   const buildPath = toBuildPath(name);
@@ -63,9 +64,21 @@ export async function buildAppModule(
   const esbuildArgs = toESBuildArgs(buildPath);
   await new Deno.Command("elm", { args: elmArgs }).spawn().status
     .then(({ success }) => success || Promise.reject(Error.ELM_ERR));
-  if (optimize === false) return;
-  await new Deno.Command("esbuild", { args: esbuildArgs }).spawn().status
-    .then(({ success }) => success || Promise.reject(Error.ESBUILD_ERR));
+  if (esm) await convertToESM(buildPath);
+  if (optimize) {
+    await new Deno.Command("esbuild", { args: esbuildArgs }).spawn().status
+      .then(({ success }) => success || Promise.reject(Error.ESBUILD_ERR));
+  }
+}
+
+export async function convertToESM(buildPath: string) {
+  const buildFile = await Deno.open(buildPath, { write: true });
+  await buildFile.seek(-8, Deno.SeekMode.End);
+  await buildFile.write(
+    new TextEncoder().encode(
+      "(globalThis));export const Elm = globalThis.Elm;",
+    ),
+  );
 }
 
 export function toBuildPath(name: string) {

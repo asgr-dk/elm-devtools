@@ -34,12 +34,12 @@ export async function watch(args: Array<string>) {
   const serveBuild = parseFlag(args, "serve") === "true";
   const servePort = parseInt(parseFlag(args, "port") || "1337");
   const buildPath = toBuildPath(moduleName);
-  await buildAppModule(elmJson, moduleName, false);
+  await buildAppModule(elmJson, moduleName, false, false);
   const appBuildServer = serveBuild ? serveAppBuild(servePort) : undefined;
   const srcDirWatch = watchFiles(
     elmJson["source-directories"],
     async (_) => {
-      await buildAppModule(elmJson, moduleName, false);
+      await buildAppModule(elmJson, moduleName, false, false);
       const script = await Deno.readTextFile(buildPath);
       if (appBuildServer) {
         appBuildServer.clients.forEach((client) =>
