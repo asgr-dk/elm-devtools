@@ -1,10 +1,11 @@
+import { fromFileUrl } from "std/path";
+
 import { buildAppModule, getElmJson, toBuildPath } from "../Elm.ts";
 import { parseFlag, watchFiles } from "../Help.ts";
 import { Error } from "../Error.ts";
 
 export function toHelpMsgWatch() {
-  return `
-Rebuilds an Elm module on change.
+  return `Rebuilds an Elm module on change.
 
 Available flags are:
 
@@ -65,7 +66,9 @@ function serveAppBuild(
   port: number | undefined = 1337,
 ): { server: Deno.HttpServer<Deno.NetAddr>; clients: Map<string, WebSocket> } {
   const clients = new Map<string, WebSocket>();
-  const clientScriptPath = `${import.meta.dirname}\\Client.js`;
+  const clientScriptPath = fromFileUrl(
+    import.meta.url.replace("/Command/Watch.ts", "/Client.js"),
+  );
   const server = Deno.serve({ port }, async (request: Request) => {
     if (request.headers.get("upgrade") !== "websocket") {
       return new Response((await Deno.open(clientScriptPath)).readable, {

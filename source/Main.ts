@@ -1,4 +1,3 @@
-import { yellow } from "./ANSI.ts";
 import { Error, toErrorMessage } from "./Error.ts";
 import { build, toHelpMsgBuild } from "./Command/Build.ts";
 import { toHelpMsgWatch, watch } from "./Command/Watch.ts";
@@ -11,9 +10,7 @@ if (import.meta.main) {
 }
 
 function toHelpMsgMain() {
-  return `
-${yellow("elm-devtools")}
-Tools for developing Elm programs!
+  return `Tools for developing Elm programs!
 
 Available commands are:
 

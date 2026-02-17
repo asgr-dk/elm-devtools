@@ -3,8 +3,7 @@ import { parseFlag } from "../Help.ts";
 import { Error } from "../Error.ts";
 
 export function toHelpMsgBuild() {
-  return `
-Builds an Elm module.
+  return `Builds an Elm module.
 
 Available flags are:
 
