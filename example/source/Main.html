@@ -8,7 +8,23 @@
   <body>
     <script type="module">
       import { Elm } from "/build/main.js";
-      Elm.Main.init({ flags: { msgs: null } });
+
+      init(Elm);
+
+      async function init({ Main }) {
+        const isLocalHost = location.hostname === "localhost";
+        const main = Main.init({
+          flags: {
+            isLocalHost,
+            msgs: JSON.parse(localStorage.getItem("msgs")),
+          },
+        });
+        if (isLocalHost === false) return;
+
+        main.ports.saveMsgs.subscribe((msgs) =>
+          localStorage.setItem("msgs", JSON.stringify(msgs))
+        );
+      }
     </script>
   </body>
 </html>

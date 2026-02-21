@@ -64,19 +64,20 @@ export async function buildAppModule(
   const esbuildArgs = toESBuildArgs(buildPath);
   await new Deno.Command("elm", { args: elmArgs }).spawn().status
     .then(({ success }) => success || Promise.reject(Error.ELM_ERR));
-  if (esm) await convertToESM(buildPath);
+  if (esm) await convertToESM(buildPath, optimize);
   if (optimize) {
     await new Deno.Command("esbuild", { args: esbuildArgs }).spawn().status
       .then(({ success }) => success || Promise.reject(Error.ESBUILD_ERR));
   }
 }
 
-export async function convertToESM(buildPath: string) {
+export async function convertToESM(buildPath: string, optimize: boolean) {
   const buildFile = await Deno.open(buildPath, { write: true });
+  const constOrLet = optimize ? "const" : "let"; // TODO - not sure if this helps with hot replacement after a rebuild.
   await buildFile.seek(-8, Deno.SeekMode.End);
   await buildFile.write(
     new TextEncoder().encode(
-      "(globalThis));export const Elm = globalThis.Elm;",
+      `(globalThis));export ${constOrLet} Elm = globalThis.Elm;`,
     ),
   );
 }
