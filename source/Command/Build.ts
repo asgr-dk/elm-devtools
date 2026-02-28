@@ -12,8 +12,8 @@ Available flags are:
         the Elm module you want to build.
     
     --optimize=<bool>
-        Defaults to true. Use this to compress
-        the built Elm code using ESBuild.
+        Defaults to false. Use this to compress
+        the built Elm code.
 
     --esm=<bool>
         Defaults to false. The Elm compiler emits

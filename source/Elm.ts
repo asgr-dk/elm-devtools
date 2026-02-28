@@ -61,13 +61,17 @@ export async function buildAppModule(
   const modulePath = await getModulePath(elmJson, name);
   const buildPath = toBuildPath(name);
   const elmArgs = toElmArgs(modulePath, buildPath, optimize);
-  const esbuildArgs = toESBuildArgs(buildPath);
   await new Deno.Command("elm", { args: elmArgs }).spawn().status
     .then(({ success }) => success || Promise.reject(Error.ELM_ERR));
   if (esm) await convertToESM(buildPath, optimize);
   if (optimize) {
-    await new Deno.Command("esbuild", { args: esbuildArgs }).spawn().status
-      .then(({ success }) => success || Promise.reject(Error.ESBUILD_ERR));
+    await Deno.bundle({
+      entrypoints: [buildPath],
+      minify: true,
+      inlineImports: true,
+      outputPath: buildPath,
+      format: "esm",
+    }).then(({ success }) => success || Promise.reject(Error.BUNDLE_ERR));
   }
 }
 
@@ -94,16 +98,4 @@ function toElmArgs(
   const args = ["make", `--output=${buildPath}`, modulePath];
   if (optimize) args.push("--optimize");
   return args;
-}
-
-function toESBuildArgs(buildPath: string) {
-  return [
-    "--minify",
-    "--allow-overwrite",
-    `--outfile=${buildPath}`,
-    "--pure:F",
-    ...Array(8).keys().map((key) => `--pure:F${key + 2}`),
-    ...Array(8).keys().map((key) => `--pure:A${key + 2}`),
-    buildPath,
-  ];
 }

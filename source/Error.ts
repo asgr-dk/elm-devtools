@@ -3,9 +3,9 @@ export enum Error {
   INVALID_ELM_JSON = "invalid elm.json",
   NO_SRC_MOD = "no source module",
   ELM_ERR = "elm make error",
-  ESBUILD_ERR = "esbuild error",
   PKG_UNSUPPORTED = "packages are unsupported",
   INVALID_ARGS = "invalid arguments",
+  BUNDLE_ERR = "deno bundle error",
 }
 
 export function toErrorMessage(error: Error): string {

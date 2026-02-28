@@ -1,30 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Example</title>
-  </head>
-  <body>
-    <script type="module">
-      import { Elm } from "/build/main.js";
 
-      init(Elm);
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Example</title>
+</head>
 
-      async function init({ Main }) {
-        const isLocalHost = location.hostname === "localhost";
-        const main = Main.init({
-          flags: {
-            isLocalHost,
-            msgs: JSON.parse(localStorage.getItem("msgs")),
-          },
-        });
-        if (isLocalHost === false) return;
+<body>
+  <script type="module">
+    import { Elm } from "/build/main.js";
+    init(Elm);
+    async function init({ Main }) {
+      const isLocalHost = location.hostname === "localhost";
+      const main = Main.init({
+        flags: {
+          isLocalHost,
+          msgs: JSON.parse(localStorage.getItem("msgs")),
+        },
+      });
+      if (isLocalHost) main.ports.saveMsgs.subscribe((msgs) =>
+        localStorage.setItem("msgs", JSON.stringify(msgs))
+      );
+    }
+  </script>
+</body>
 
-        main.ports.saveMsgs.subscribe((msgs) =>
-          localStorage.setItem("msgs", JSON.stringify(msgs))
-        );
-      }
-    </script>
-  </body>
 </html>
