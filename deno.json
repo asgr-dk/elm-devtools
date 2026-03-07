@@ -1,9 +1,6 @@
 {
   "tasks": {
-    "compile:windows": "deno compile --unstable-bundle --allow-all --include source/Client.js --output build/elm-devtools source/Main.ts 0.2.0",
-    "example:build": "(cd example && deno run --unstable-bundle -A ../source/Main.ts 0.1.0 build --module=Main --esm=true  --optimize=true)"
-  },
-  "imports": {
-    "std/path": "jsr:@std/path"
+    "try:build": "deno run -A source/Elm.js && deno run -A source/Main.js 0.2.0 build",
+    "compile": "deno run -A source/Elm.js optimize && deno compile --unstable-bundle --output build/elm-devtools source/Main.ts 0.2.0"
   }
 }
