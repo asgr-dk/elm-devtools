@@ -1,14 +1,15 @@
-port module Main exposing (main)
+module Main exposing (main)
 
+import Build
 import Dict
 import Elm.Project
+import Extension.Parser as Parser
+import Extension.Result as Result
 import Json.Decode
 import Json.Encode
+import Output
 import Parser exposing ((|.), (|=), Parser)
 import Set
-
-
-port output : Output -> Cmd msg
 
 
 type alias Input =
@@ -17,7 +18,7 @@ type alias Input =
     }
 
 
-run : Input -> Output
+run : Input -> Cmd msg
 run { args, project } =
     let
         arg =
@@ -25,14 +26,14 @@ run { args, project } =
     in
     arg
         |> Parser.run commandParser
-        |> recoverWith ParseError
+        |> Result.recover ParseError
         |> commandToOutput arg (decodeProject project)
 
 
 main : Program Input () ()
 main =
     Platform.worker
-        { init = run >> output >> Tuple.pair ()
+        { init = run >> Tuple.pair ()
         , update = always (always ( (), Cmd.none ))
         , subscriptions = always Sub.none
         }
@@ -43,213 +44,39 @@ main =
 
 
 type Command
-    = Build BuildArgs
+    = Build Build.Arguments
     | ParseError (List Parser.DeadEnd)
 
 
 commandParser : Parser Command
 commandParser =
     Parser.oneOf
-        [ buildParser
+        [ Parser.map Build Build.parser
         ]
 
 
-commandToOutput : String -> Result ProjectError Elm.Project.Project -> Command -> Output
+commandToOutput : String -> Result ProjectError Elm.Project.Project -> Command -> Cmd msg
 commandToOutput arg projectResult cmd =
     case cmd of
         Build buildArgs ->
             case projectResult of
                 Ok project ->
-                    toBuildOutput project buildArgs
+                    Output.build project buildArgs
 
                 Err projectError ->
-                    toErrorOutput (projectErrorToString projectError)
+                    Output.error (projectErrorToString projectError)
 
         ParseError deadEnds ->
-            toErrorOutput (deadEndsToString arg deadEnds)
+            Output.error (Parser.deadEndsToString_ arg deadEnds)
+
+
+
+-- ProjectError
 
 
 type ProjectError
     = ProjectDecodeError Json.Decode.Error
     | NoProject
-
-
-
--- Build Command
-
-
-buildParser : Parser Command
-buildParser =
-    Parser.succeed Build
-        |. Parser.keyword "build"
-        |. Parser.spaces
-        |= buildArgsParser
-        |. Parser.end
-
-
-buildArgsParser : Parser BuildArgs
-buildArgsParser =
-    Parser.loop initBuildArgs buildArgsParserLoop
-
-
-buildArgsParserLoop : BuildArgs -> Parser (Parser.Step BuildArgs BuildArgs)
-buildArgsParserLoop args =
-    Parser.oneOf
-        [ Parser.succeed (\o -> Parser.Loop { args | optimize = o })
-            |= flagParser "optimize" boolParser
-            |. Parser.spaces
-        , Parser.succeed (\o -> Parser.Loop { args | optimize = o })
-            |= toggleFlagParser "optimize"
-            |. Parser.spaces
-        , Parser.succeed (\m -> Parser.Loop { args | module_ = m })
-            |. Parser.spaces
-            |= flagParser "module" moduleParser
-            |. Parser.spaces
-        , Parser.succeed (\f -> Parser.Loop { args | format = f })
-            |= flagParser "format" formatParser
-            |. Parser.spaces
-        , Parser.succeed (\o -> Parser.Loop { args | output_ = Just o })
-            |= flagParser "output" outputParser
-            |. Parser.spaces
-        , Parser.succeed (\w -> Parser.Loop { args | watch = w })
-            |= toggleFlagParser "watch"
-            |. Parser.spaces
-        , Parser.succeed (Parser.Done args)
-        ]
-
-
-type alias BuildArgs =
-    { module_ : List String
-    , optimize : Bool
-    , format : Format
-    , output_ : Maybe String
-    , watch : Bool
-    }
-
-
-initBuildArgs : BuildArgs
-initBuildArgs =
-    { module_ = [ "Main" ]
-    , optimize = False
-    , format = IIFE
-    , output_ = Nothing
-    , watch = False
-    }
-
-
-outputParser : Parser String
-outputParser =
-    Parser.variable
-        { start = always True
-        , inner = always True
-        , reserved = Set.empty
-        }
-
-
-
--- Output
-
-
-type alias Output =
-    { cmd : String
-    , args : Json.Encode.Value
-    }
-
-
-toBuildOutput : Elm.Project.Project -> BuildArgs -> Output
-toBuildOutput project { module_, output_, optimize, format, watch } =
-    { cmd = "build"
-    , args =
-        Json.Encode.object
-            [ ( "module", Json.Encode.string (String.join "." module_) )
-            , ( "output", Json.Encode.string (Maybe.withDefault (outputFromModule module_) output_) )
-            , ( "optimize", Json.Encode.bool optimize )
-            , ( "format", Json.Encode.string (formatToString format) )
-            , ( "project", Elm.Project.encode project )
-            , ( "watch", Json.Encode.bool watch )
-            ]
-    }
-
-
-toLogOutput : String -> Output
-toLogOutput message =
-    { cmd = "log"
-    , args = Json.Encode.string message
-    }
-
-
-toErrorOutput : String -> Output
-toErrorOutput message =
-    { cmd = "error"
-    , args = Json.Encode.string message
-    }
-
-
-
--- Module_
-
-
-moduleParser : Parser (List String)
-moduleParser =
-    Parser.succeed (::)
-        |= moduleSegmentParser
-        |= Parser.loop [] moduleParserLoop
-
-
-moduleParserLoop : List String -> Parser (Parser.Step (List String) (List String))
-moduleParserLoop mods =
-    Parser.oneOf
-        [ Parser.succeed (\mod -> Parser.Loop (mods ++ [ mod ]))
-            |. Parser.symbol "."
-            |= moduleSegmentParser
-        , Parser.succeed ()
-            |> Parser.map (\_ -> Parser.Done mods)
-        ]
-
-
-moduleSegmentParser : Parser String
-moduleSegmentParser =
-    Parser.variable
-        { start = \c -> Char.isAlpha c && Char.isUpper c
-        , inner = \c -> Char.isAlpha c
-        , reserved = Set.empty
-        }
-
-
-outputFromModule : List String -> String
-outputFromModule module_ =
-    String.join "/" (List.map String.toLower ("build" :: module_)) ++ ".js"
-
-
-
--- Format
-
-
-type Format
-    = ESM
-    | IIFE
-
-
-formatParser : Parser Format
-formatParser =
-    Parser.oneOf
-        [ Parser.succeed ESM |. Parser.keyword "esm"
-        , Parser.succeed IIFE |. Parser.keyword "iife"
-        ]
-
-
-formatToString : Format -> String
-formatToString format =
-    case format of
-        ESM ->
-            "ESM"
-
-        IIFE ->
-            "IIFE"
-
-
-
--- Project
 
 
 decodeProject : Maybe String -> Result ProjectError Elm.Project.Project
@@ -267,105 +94,3 @@ projectErrorToString error =
 
         NoProject ->
             "No elm.json found in this directory"
-
-
-
--- Result
-
-
-recoverWith : (error -> ok) -> Result error ok -> ok
-recoverWith recover result =
-    case result of
-        Ok value ->
-            value
-
-        Err error ->
-            recover error
-
-
-
--- Parser
-
-
-deadEndsToString : String -> List Parser.DeadEnd -> String
-deadEndsToString arg ends =
-    "Problem with the given arguments:\n\n"
-        ++ arg
-        ++ "\n\n"
-        ++ String.join "\n" (List.map deadEndToString ends)
-
-
-deadEndToString : Parser.DeadEnd -> String
-deadEndToString { row, col, problem } =
-    parserProblemToString problem
-        ++ " (line"
-        ++ String.fromInt row
-        ++ " column"
-        ++ String.fromInt col
-        ++ ")"
-
-
-parserProblemToString : Parser.Problem -> String
-parserProblemToString problem =
-    case problem of
-        Parser.Expecting text ->
-            "Expecting string \"" ++ text ++ "\""
-
-        Parser.ExpectingInt ->
-            "Expecting int"
-
-        Parser.ExpectingHex ->
-            "Expecting hex"
-
-        Parser.ExpectingOctal ->
-            "Expecting octal"
-
-        Parser.ExpectingBinary ->
-            "Expecting binary"
-
-        Parser.ExpectingFloat ->
-            "Expecting float"
-
-        Parser.ExpectingNumber ->
-            "Expecting number"
-
-        Parser.ExpectingVariable ->
-            "Expecting variable"
-
-        Parser.ExpectingSymbol key ->
-            "Expecting symbol \"" ++ key ++ "\""
-
-        Parser.ExpectingKeyword key ->
-            "Expecting keyword \"" ++ key ++ "\""
-
-        Parser.ExpectingEnd ->
-            "Expecting end of line"
-
-        Parser.UnexpectedChar ->
-            "Expecting character"
-
-        Parser.Problem reason ->
-            "Something went wrong: " ++ reason
-
-        Parser.BadRepeat ->
-            "Something shouldn't be repeated"
-
-
-boolParser : Parser Bool
-boolParser =
-    Parser.oneOf
-        [ Parser.succeed True |. Parser.keyword "true"
-        , Parser.succeed False |. Parser.keyword "false"
-        ]
-
-
-flagParser : String -> Parser value -> Parser value
-flagParser keyword valueParser =
-    Parser.succeed identity
-        |. Parser.symbol ("--" ++ keyword ++ "=")
-        |= valueParser
-
-
-toggleFlagParser : String -> Parser Bool
-toggleFlagParser keyword =
-    Parser.succeed True |. Parser.symbol ("--" ++ keyword)
