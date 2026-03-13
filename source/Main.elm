@@ -19,12 +19,14 @@ type alias Input =
 
 run : Input -> Output
 run { args, project } =
-    args
-        |> List.drop 1
-        |> String.join " "
+    let
+        arg =
+            String.join " " (List.drop 1 args)
+    in
+    arg
         |> Parser.run commandParser
         |> recoverWith ParseError
-        |> commandToOutput (decodeProject project)
+        |> commandToOutput arg (decodeProject project)
 
 
 main : Program Input () ()
@@ -52,8 +54,8 @@ commandParser =
         ]
 
 
-commandToOutput : Result ProjectError Elm.Project.Project -> Command -> Output
-commandToOutput projectResult cmd =
+commandToOutput : String -> Result ProjectError Elm.Project.Project -> Command -> Output
+commandToOutput arg projectResult cmd =
     case cmd of
         Build buildArgs ->
             case projectResult of
@@ -64,7 +66,7 @@ commandToOutput projectResult cmd =
                     toErrorOutput (projectErrorToString projectError)
 
         ParseError deadEnds ->
-            toErrorOutput (deadEndsToString deadEnds)
+            toErrorOutput (deadEndsToString arg deadEnds)
 
 
 type ProjectError
@@ -264,7 +266,7 @@ projectErrorToString error =
             Json.Decode.errorToString decodeError
 
         NoProject ->
-            "TODO - no project here"
+            "No elm.json found in this directory"
 
 
 
@@ -285,9 +287,68 @@ recoverWith recover result =
 -- Parser
 
 
-deadEndsToString : List Parser.DeadEnd -> String
-deadEndsToString ends =
-    Debug.toString ends
+deadEndsToString : String -> List Parser.DeadEnd -> String
+deadEndsToString arg ends =
+    "Problem with the given arguments:\n\n"
+        ++ arg
+        ++ "\n\n"
+        ++ String.join "\n" (List.map deadEndToString ends)
+
+
+deadEndToString : Parser.DeadEnd -> String
+deadEndToString { row, col, problem } =
+    parserProblemToString problem
+        ++ " (line"
+        ++ String.fromInt row
+        ++ " column"
+        ++ String.fromInt col
+        ++ ")"
+
+
+parserProblemToString : Parser.Problem -> String
+parserProblemToString problem =
+    case problem of
+        Parser.Expecting text ->
+            "Expecting string \"" ++ text ++ "\""
+
+        Parser.ExpectingInt ->
+            "Expecting int"
+
+        Parser.ExpectingHex ->
+            "Expecting hex"
+
+        Parser.ExpectingOctal ->
+            "Expecting octal"
+
+        Parser.ExpectingBinary ->
+            "Expecting binary"
+
+        Parser.ExpectingFloat ->
+            "Expecting float"
+
+        Parser.ExpectingNumber ->
+            "Expecting number"
+
+        Parser.ExpectingVariable ->
+            "Expecting variable"
+
+        Parser.ExpectingSymbol key ->
+            "Expecting symbol \"" ++ key ++ "\""
+
+        Parser.ExpectingKeyword key ->
+            "Expecting keyword \"" ++ key ++ "\""
+
+        Parser.ExpectingEnd ->
+            "Expecting end of line"
+
+        Parser.UnexpectedChar ->
+            "Expecting character"
+
+        Parser.Problem reason ->
+            "Something went wrong: " ++ reason
+
+        Parser.BadRepeat ->
+            "Something shouldn't be repeated"
 
 
 boolParser : Parser Bool
