@@ -2,7 +2,7 @@ if (import.meta.main) {
   const optimize = Deno.args.some((arg) => arg === "optimize");
   const modulePath = "source/Main.elm";
   const output = "build/main.js";
-  console.log({ optimize, modulePath, output });
+  console.table({ optimize, modulePath, output });
   await buildElm({ modulePath, output, optimize });
   await convertToESM({ output, optimize });
 }
@@ -33,4 +33,32 @@ export async function getModulePath(project, module) {
       .map((dir) => `${dir}/${namePath}.elm`)
       .map((path) => Deno.lstat(path).then((_) => path)),
   );
+}
+
+export function watchSource(
+  project,
+  onEvent,
+  timeoutMilliseconds = 100,
+) {
+  const sourceWatch = Deno.watchFs(project["source-directories"]);
+  (async function () {
+    let id = undefined;
+    for await (const event of sourceWatch) {
+      if (event.paths.some((path) => path.endsWith(".elm"))) {
+        if (id) clearTimeout(id);
+        id = setTimeout(
+          async () => await onEvent(event).catch(() => {}),
+          timeoutMilliseconds,
+        );
+      }
+    }
+  })();
+  return sourceWatch;
+}
+
+export async function watchProject() {
+  const projectWatch = Deno.watchFs("elm.json");
+  for await (const _ of projectWatch) {
+    projectWatch.close();
+  }
 }

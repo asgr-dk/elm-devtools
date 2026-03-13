@@ -1,6 +1,7 @@
 {
   "tasks": {
-    "try:build": "deno run -A source/Elm.js && deno run -A source/Main.js 0.2.0 build",
-    "compile": "deno run -A source/Elm.js optimize && deno compile --unstable-bundle --output build/elm-devtools source/Main.ts 0.2.0"
+    "build:example": "deno run -A source/Elm.js && (cd example && deno run -A ../source/Main.js 0.1.0 build)",
+    "watch:example": "deno run -A source/Elm.js && (cd example && deno run -A ../source/Main.js 0.1.0 build --watch)",
+    "compile": "deno run -A source/Elm.js optimize && deno compile --unstable-bundle --output build/elm-devtools source/Main.ts 1.0.0"
   }
 }

@@ -109,6 +109,9 @@ buildArgsParserLoop args =
         , Parser.succeed (\o -> Parser.Loop { args | output_ = Just o })
             |= flagParser "output" outputParser
             |. Parser.spaces
+        , Parser.succeed (\w -> Parser.Loop { args | watch = w })
+            |= toggleFlagParser "watch"
+            |. Parser.spaces
         , Parser.succeed (Parser.Done args)
         ]
 
@@ -118,6 +121,7 @@ type alias BuildArgs =
     , optimize : Bool
     , format : Format
     , output_ : Maybe String
+    , watch : Bool
     }
 
 
@@ -127,6 +131,7 @@ initBuildArgs =
     , optimize = False
     , format = IIFE
     , output_ = Nothing
+    , watch = False
     }
 
 
@@ -137,6 +142,45 @@ outputParser =
         , inner = always True
         , reserved = Set.empty
         }
+
+
+
+-- Output
+
+
+type alias Output =
+    { cmd : String
+    , args : Json.Encode.Value
+    }
+
+
+toBuildOutput : Elm.Project.Project -> BuildArgs -> Output
+toBuildOutput project { module_, output_, optimize, format, watch } =
+    { cmd = "build"
+    , args =
+        Json.Encode.object
+            [ ( "module", Json.Encode.string (String.join "." module_) )
+            , ( "output", Json.Encode.string (Maybe.withDefault (outputFromModule module_) output_) )
+            , ( "optimize", Json.Encode.bool optimize )
+            , ( "format", Json.Encode.string (formatToString format) )
+            , ( "project", Elm.Project.encode project )
+            , ( "watch", Json.Encode.bool watch )
+            ]
+    }
+
+
+toLogOutput : String -> Output
+toLogOutput message =
+    { cmd = "log"
+    , args = Json.Encode.string message
+    }
+
+
+toErrorOutput : String -> Output
+toErrorOutput message =
+    { cmd = "error"
+    , args = Json.Encode.string message
+    }
 
 
 
@@ -164,8 +208,8 @@ moduleParserLoop mods =
 moduleSegmentParser : Parser String
 moduleSegmentParser =
     Parser.variable
-        { start = \c -> Char.isUpper c && Char.isAlpha c
-        , inner = \c -> Char.isLower c && Char.isAlpha c
+        { start = \c -> Char.isAlpha c && Char.isUpper c
+        , inner = \c -> Char.isAlpha c
         , reserved = Set.empty
         }
 
@@ -200,44 +244,6 @@ formatToString format =
 
         IIFE ->
             "IIFE"
-
-
-
--- Output
-
-
-type alias Output =
-    { cmd : String
-    , args : Json.Encode.Value
-    }
-
-
-toBuildOutput : Elm.Project.Project -> BuildArgs -> Output
-toBuildOutput project { module_, output_, optimize, format } =
-    { cmd = "build"
-    , args =
-        Json.Encode.object
-            [ ( "module", Json.Encode.string (String.join "." module_) )
-            , ( "output", Json.Encode.string (Maybe.withDefault (outputFromModule module_) output_) )
-            , ( "optimize", Json.Encode.bool optimize )
-            , ( "format", Json.Encode.string (formatToString format) )
-            , ( "project", Elm.Project.encode project )
-            ]
-    }
-
-
-toLogOutput : String -> Output
-toLogOutput message =
-    { cmd = "log"
-    , args = Json.Encode.string message
-    }
-
-
-toErrorOutput : String -> Output
-toErrorOutput message =
-    { cmd = "error"
-    , args = Json.Encode.string message
-    }
 
 
 
