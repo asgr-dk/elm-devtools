@@ -21,13 +21,13 @@ type alias Input =
 run : Input -> Cmd msg
 run { args, project } =
     let
-        arg =
-            String.join " " (List.drop 1 args)
+        normalArgs =
+            String.toLower (String.join " " (List.drop 1 args))
     in
-    arg
+    normalArgs
         |> Parser.run commandParser
         |> Result.recover ParseError
-        |> commandToOutput arg (decodeProject project)
+        |> commandToOutput normalArgs (decodeProject project)
 
 
 main : Program Input () ()

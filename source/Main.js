@@ -38,7 +38,7 @@ async function toBuildOutput(
   const modulePath = await getModulePath(project, module);
   async function build() {
     await buildElm({ modulePath, output, optimize });
-    if (format === "ESM") await convertToESM(output, optimize);
+    if (format === "esm") await convertToESM(output, optimize);
   }
   if (watch) {
     const sourceWatch = watchSource(project, build);

@@ -22,9 +22,9 @@ deadEndsToString_ string ends =
 deadEndToString : Parser.DeadEnd -> String
 deadEndToString { row, col, problem } =
     parserProblemToString problem
-        ++ " (line"
+        ++ " (line "
         ++ String.fromInt row
-        ++ " column"
+        ++ " column "
         ++ String.fromInt col
         ++ ")"
 

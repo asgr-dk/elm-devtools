@@ -37,7 +37,7 @@ build project { module_, output_, optimize, format, watch } =
         , args =
             Json.Encode.object
                 [ ( "module", Json.Encode.string (String.join "." module_) )
-                , ( "output", Json.Encode.string output_ )
+                , ( "output", Json.Encode.string (Maybe.withDefault (Build.toOutput module_) output_) )
                 , ( "optimize", Json.Encode.bool optimize )
                 , ( "format", Json.Encode.string (Build.formatToString format) )
                 , ( "project", Elm.Project.encode project )
