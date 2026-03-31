@@ -7,18 +7,6 @@ import Parser exposing ((|.), (|=), Parser)
 import Set
 
 
-keyword =
-    { build = "build"
-    , optimize = "optimize"
-    , module_ = "module"
-    , format = "format"
-    , output = "output"
-    , watch = "watch"
-    , esm = "esm"
-    , iife = "iife"
-    }
-
-
 
 -- Arguments
 
@@ -49,7 +37,7 @@ initArguments =
 parser : Parser Arguments
 parser =
     Parser.succeed identity
-        |. Parser.keyword keyword.build
+        |. Parser.keyword "build"
         |. Parser.spaces
         |= argumentsParser
         |. Parser.end
@@ -64,20 +52,20 @@ argumentsParserLoop : Arguments -> Parser (Parser.Step Arguments Arguments)
 argumentsParserLoop args =
     Parser.oneOf
         [ Parser.succeed (\o -> Parser.Loop { args | optimize = o })
-            |= Parser.oneOf [ Flag.parse keyword.optimize Parser.bool, Flag.parseToggle keyword.optimize ]
+            |= Parser.oneOf [ Flag.parse "optimize" Parser.bool, Flag.parseToggle "optimize" ]
             |. Parser.spaces
         , Parser.succeed (\m -> Parser.Loop { args | module_ = m })
             |. Parser.spaces
-            |= Flag.parse keyword.module_ moduleParser
+            |= Flag.parse "module" moduleParser
             |. Parser.spaces
         , Parser.succeed (\f -> Parser.Loop { args | format = f })
-            |= Flag.parse keyword.format formatParser
+            |= Flag.parse "format" formatParser
             |. Parser.spaces
         , Parser.succeed (\o -> Parser.Loop { args | output_ = Just o })
-            |= Flag.parse keyword.output outputParser
+            |= Flag.parse "output" outputParser
             |. Parser.spaces
         , Parser.succeed (\w -> Parser.Loop { args | watch = w })
-            |= Parser.oneOf [ Flag.parse keyword.watch Parser.bool, Flag.parseToggle keyword.watch ]
+            |= Parser.oneOf [ Flag.parse "watch" Parser.bool, Flag.parseToggle "watch" ]
             |. Parser.spaces
         , Parser.succeed (Parser.Done args)
         ]
@@ -98,7 +86,7 @@ outputParser =
 
 toOutput : List String -> String
 toOutput module_ =
-    String.join "/" (List.map String.toLower (keyword.build :: module_)) ++ ".js"
+    String.join "/" (List.map String.toLower ("build" :: module_)) ++ ".js"
 
 
 
@@ -114,17 +102,17 @@ formatToString : Format -> String
 formatToString format =
     case format of
         ESM ->
-            keyword.esm
+            "esm"
 
         IIFE ->
-            keyword.iife
+            "iife"
 
 
 formatParser : Parser Format
 formatParser =
     Parser.oneOf
-        [ Parser.succeed ESM |. Parser.keyword keyword.esm
-        , Parser.succeed IIFE |. Parser.keyword keyword.iife
+        [ Parser.succeed ESM |. Parser.keyword "esm"
+        , Parser.succeed IIFE |. Parser.keyword "iife"
         ]
 
 
